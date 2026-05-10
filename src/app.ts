@@ -11,11 +11,13 @@ import shopRouter from './routes/shop';
 import inventoryRouter from './routes/inventory';
 import groupsRouter from './routes/groups';
 import { handleMulterError } from './middleware/multerError';
+import { responseTime } from './middleware/responseTime';
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(responseTime);
 
 app.use('/api/users', userRoutes);
 app.use('/api/bets', betsRouter);
