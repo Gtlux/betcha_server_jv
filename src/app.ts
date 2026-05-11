@@ -17,7 +17,10 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+// --- JV Pradžia ---
+// NFR-1: Globalus middleware, matuojantis visų užklausų atsako laiką
 app.use(responseTime);
+// --- JV Pabaiga ---
 
 app.use('/api/users', userRoutes);
 app.use('/api/bets', betsRouter);

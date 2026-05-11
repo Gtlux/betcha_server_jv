@@ -10,10 +10,13 @@ router.get(
   getProfile as RequestHandler,
 );
 
+// --- JV Pradžia ---
+// UR-1: Veiklos žurnalo endpointas (apsaugotas requireAuth)
 router.get(
   '/activity',
   requireAuth as RequestHandler,
   getActivity as RequestHandler,
 );
+// --- JV Pabaiga ---
 
 export default router;
