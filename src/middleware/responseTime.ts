@@ -9,12 +9,21 @@ import logger from '../lib/logger';
 export function responseTime(req: Request, res: Response, next: NextFunction): void {
   const start = process.hrtime.bigint();
 
+  // Intercept writeHead to set header before response is sent
+  const originalWriteHead = res.writeHead;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (res as any).writeHead = function (this: Response, ...args: any[]) {
+    const end = process.hrtime.bigint();
+    const durationMs = Number(end - start) / 1_000_000;
+    const rounded = Math.round(durationMs * 100) / 100;
+    this.setHeader('X-Response-Time', `${rounded}ms`);
+    return originalWriteHead.apply(this, args as any);
+  };
+
   res.on('finish', () => {
     const end = process.hrtime.bigint();
     const durationMs = Number(end - start) / 1_000_000;
     const rounded = Math.round(durationMs * 100) / 100;
-
-    res.setHeader('X-Response-Time', `${rounded}ms`);
 
     const logData = {
       method: req.method,
