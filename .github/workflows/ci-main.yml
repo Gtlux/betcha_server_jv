@@ -33,7 +33,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 4. TypeScript kompiliacija
+      # 4. Statinė kodo analizė (linter)
+      - name: Lint (ESLint)
+        run: npx eslint . --ext .ts --max-warnings 0 || true
+
+      # 5. TypeScript kompiliacija
       - name: Build TypeScript
         run: npx tsc --noEmit
 
