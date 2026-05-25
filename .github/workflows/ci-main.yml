@@ -1,0 +1,47 @@
+# CI Pipeline — Main šakai (betcha_server)
+# Autorius: JV (Jarek)
+# Paleidžiamas automatiškai kai pushinama arba merginamas į main
+
+name: CI Main Branch (Server)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    name: Build & Test (Main)
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Nusiklonuojame repo kodą
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Nustatome Node.js versiją
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Instaliuojame priklausomybes
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. TypeScript kompiliacija
+      - name: Build TypeScript
+        run: npx tsc --noEmit
+
+      # 5. Paleidžiame unit testus su coverage ataskaita
+      - name: Run tests with coverage
+        run: npx jest --ci --coverage --passWithNoTests --forceExit
+
+      # 6. Build statusas
+      - name: Build status
+        if: success()
+        run: echo "✅ Main branch CI passed successfully"
