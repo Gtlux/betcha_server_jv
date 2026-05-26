@@ -41,7 +41,11 @@ begin
      set balance = balance - p_amount
    where id = p_profile_id;
 
-  -- 5. Grąžinti sukurto statymo duomenis
+  -- 5. Užregistruoti transakciją veiklos žurnalui (Activity Log)
+  insert into public.transactions (profile_id, amount, type, reference_id)
+  values (p_profile_id, -p_amount, 'bet_placed', v_bet_id);
+
+  -- 6. Grąžinti sukurto statymo duomenis
   return json_build_object(
     'id',         v_bet_id,
     'quest_id',   p_quest_id,
