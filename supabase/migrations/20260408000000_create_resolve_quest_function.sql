@@ -1,4 +1,5 @@
 -- Atominė funkcija, kuri gavus rezoliuciją (Už / Prieš laimėjo) perskirsto taškus nugalėtojams.
+-- PATAISYTA: dabar registruoja bet_win ir bet_loss transakcijas Activity Log'ui.
 create or replace function resolve_quest(
   p_quest_id uuid,
   p_resolution_is_positive boolean
@@ -9,6 +10,7 @@ security definer
 as $$
 declare
   v_status text;
+  v_bet record;
 begin
   -- 1. Patikriname ar quest dar nėra išspręstas ir užrakiname jį
   select status into v_status
@@ -25,8 +27,6 @@ begin
   end if;
 
   -- 2. Atnaujiname quests statusą
-  -- Tarkime, "completed" atitinka resolution_is_positive = true (UŽ)
-  -- "rejected" atitinka resolution_is_positive = false (PRIEŠ)
   update public.quests 
      set status = case when p_resolution_is_positive then 'completed' else 'rejected' end,
          completed_at = now()
@@ -39,14 +39,28 @@ begin
      and status = 'pending';
 
   -- 4. Paskirstome prizus laimėtojams
-  -- Pastaba: Kai lažybos buvo daromos, asmens balansas jau buvo sumažintas jo asmeniniu statymu.
-  -- Grąžinant pelną + jo statymą, reikia balansą padidinti (amount * coefficient).
   update public.profiles p
      set balance = balance + (b.amount * b.coefficient)
     from public.bets b
    where b.quest_id = p_quest_id
      and b.profile_id = p.id
      and b.status = 'won';
+
+  -- 5. Registruojame transakcijas kiekvienam laimėtojui ir pralaimėtojui (Activity Log)
+  for v_bet in
+    select id, profile_id, amount, coefficient, status
+      from public.bets
+     where quest_id = p_quest_id
+       and status in ('won', 'lost')
+  loop
+    if v_bet.status = 'won' then
+      insert into public.transactions (profile_id, amount, type, reference_id)
+      values (v_bet.profile_id, (v_bet.amount * v_bet.coefficient)::integer, 'bet_win', v_bet.id);
+    else
+      insert into public.transactions (profile_id, amount, type, reference_id)
+      values (v_bet.profile_id, 0, 'bet_loss', v_bet.id);
+    end if;
+  end loop;
 
   return json_build_object(
     'success', true,

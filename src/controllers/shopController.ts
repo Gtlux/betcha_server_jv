@@ -84,7 +84,7 @@ export const purchaseItem = async (
     const { error: transError } = await supabase.from('transactions').insert({
       profile_id: userId,
       amount: -item.price,
-      type: 'purchase',
+      type: 'shop_purchase',
       reference_id: itemId,
     });
 
