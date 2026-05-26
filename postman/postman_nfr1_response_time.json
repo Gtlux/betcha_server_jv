@@ -1,0 +1,143 @@
+{
+  "info": {
+    "name": "Betcha API — NFR-1 Response Time (JV)",
+    "_postman_id": "nfr1-response-time-jv",
+    "description": "ND2 3 užduotis: Integraciniai testai NFR-1 atsako laiko reikalavimui.\nTestuoja integraciją tarp: ResponseTime Middleware → Express Routes → Response Headers",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://betchaserverjv-production.up.railway.app",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "TA-1: Health check grąžina X-Response-Time headerį",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        },
+        "description": "Testinis atvejis 1: Tikriname ar /health endpointas grąžina X-Response-Time antraštę ir atsako per < 500ms."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// TA-1: Health check turi grąžinti 200 arba 503 (jei DB neprieinama)",
+              "pm.test('Statusas turi būti 200 arba 503', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 503]);",
+              "});",
+              "",
+              "// TA-1: Turi turėti X-Response-Time antraštę",
+              "pm.test('Turi turėti X-Response-Time headerį', function () {",
+              "    pm.response.to.have.header('X-Response-Time');",
+              "});",
+              "",
+              "// TA-1: X-Response-Time formatas turi būti '123.45ms'",
+              "pm.test('X-Response-Time formatas teisingas (skaičius + ms)', function () {",
+              "    const header = pm.response.headers.get('X-Response-Time');",
+              "    pm.expect(header).to.match(/^\\d+(\\.\\d+)?ms$/);",
+              "});",
+              "",
+              "// NFR-1 SLA: Atsakymo laikas turi būti < 500ms",
+              "pm.test('Atsakymo laikas < 500ms (NFR-1 SLA)', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "TA-2: API endpointas grąžina X-Response-Time net esant klaidai",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/users/activity",
+          "host": ["{{base_url}}"],
+          "path": ["api", "users", "activity"]
+        },
+        "description": "Testinis atvejis 2: Tikriname ar middleware prideda X-Response-Time antraštę net kai atsakymas yra 401 (klaida). Tai įrodo, kad middleware veikia VISOMS užklausoms, ne tik sėkmingoms."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// TA-2: Neautorizuota užklausa turi grąžinti 401",
+              "pm.test('Statusas turi būti 401', function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "// TA-2: Net esant klaidai, X-Response-Time headeris turi būti",
+              "pm.test('X-Response-Time headeris yra net esant 401', function () {",
+              "    pm.response.to.have.header('X-Response-Time');",
+              "});",
+              "",
+              "// TA-2: X-Response-Time formatas teisingas",
+              "pm.test('X-Response-Time formatas teisingas', function () {",
+              "    const header = pm.response.headers.get('X-Response-Time');",
+              "    pm.expect(header).to.match(/^\\d+(\\.\\d+)?ms$/);",
+              "});",
+              "",
+              "// NFR-1: Net klaidos atsakymas turi būti greitas",
+              "pm.test('Klaidos atsakymo laikas < 500ms', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "TA-3: Neegzistuojantis endpointas vis tiek turi X-Response-Time",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/nonexistent",
+          "host": ["{{base_url}}"],
+          "path": ["api", "nonexistent"]
+        },
+        "description": "Testinis atvejis 3: Siunčiame užklausą į neegzistuojantį endpointą. Tikriname ar middleware vis tiek prideda X-Response-Time antraštę ir ar atsakymas greitesnis nei 500ms."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// TA-3: Neegzistuojantis endpointas turi grąžinti 404",
+              "pm.test('Statusas turi būti 404', function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "// TA-3: Middleware turi veikti net 404 atsakymams",
+              "pm.test('X-Response-Time headeris yra net esant 404', function () {",
+              "    pm.response.to.have.header('X-Response-Time');",
+              "});",
+              "",
+              "// NFR-1: 404 atsakymas turi būti greitas",
+              "pm.test('404 atsakymo laikas < 500ms', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}
